@@ -258,20 +258,11 @@ void sparse::show()
 
 void sparse::clear()
 {
-	int posR, posC;
-	for (int i = 0; i < m; i++)
-	{
-		for (int j = 0; j < n; j++)
-		{
-			if (find(i, j, posR, posC))
-			{
-				if (i <= j)
-					element[posR].U = 0;
-				else
-					element[posR].L = 0;
-			}
-		}
-	}
+	vector <HEAD>(m).swap(CHEAD);
+	vector <HEAD>(n).swap(RHEAD);
+	vector <sp_element>().swap(element);
+
+
 }
 
 
@@ -287,23 +278,24 @@ void sparse::T2decomposition()
 	for (int p = 0; p < m - 1; p++)
 	{
 		
-		
-		min = m;
-		//选取出线最少的节点
-		for (int i = p; i < m; i++)
+		if (T2)
 		{
-			if (RHEAD[i].count < min)
+			min = m;
+			//选取出线最少的节点
+			for (int i = p; i < m; i++)
 			{
-				min = RHEAD[i].count;
-				q = i;
+				if (RHEAD[i].count < min)
+				{
+					min = RHEAD[i].count;
+					q = i;
+				}
 			}
+
+			//
+			if (p != q)
+				swap(p, q);//通过编号交换，使得出线数最少的节点为待消去节点
+
 		}
-		
-		//
-		if (p != q)
-			swap(p, q);//通过编号交换，使得出线数最少的节点为待消去节点
-			
-			
 		
 		for (int k = element[RHEAD[p].first].right; k >= 0; k = element[k].right)
 		{
@@ -336,7 +328,7 @@ void sparse::T2decomposition()
 //输入：注入元的行列号i和j，注入元的值val
 //将注入元添加到稀疏矩阵中，更新矩阵
 //true表示有注入元
-bool sparse::update(const int &i, const int &j, const double &val)
+bool sparse::update(int i, int j, const double &val)
 {
 	int ei;
 	sp_element add;
@@ -390,6 +382,7 @@ bool sparse::update(const int &i, const int &j, const double &val)
 		(element.back()).down = element[ei].down;
 		element[ei].down = element.size() - 1;
 	}
+
 	if (i != j)//统计出线数
 	{
 		RHEAD[i].count++;
@@ -498,6 +491,7 @@ bool sparse::right(int &i, int &j, int &r)
 //构造函数
 sparse::sparse(const int &mm, const int &nn, const matrix &list, const bool sym) :RHEAD(mm), CHEAD(nn), m(mm), n(nn), symmetric(sym), order(mm)
 {
+	T2 = true;
 	int pi, pj;
 	double pval;
 	if (symmetric)

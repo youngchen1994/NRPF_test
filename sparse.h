@@ -49,6 +49,7 @@ class sparse
 	bool find(const int& i, const int &j, int &p, int& q);
 
 public: 
+	bool T2;
 	int current_position;//当前指向非零元的位置
 	bool position(const int &i, const int &j, int &posR)
 	{
@@ -84,7 +85,7 @@ public:
 	//更新函数
 	//输入：注入元的行列号i和j，注入元的值val
 	//将注入元添加到稀疏矩阵中，更新矩阵
-	bool update(const int &i, const int &j, const double &val);
+	bool update(int i, int j, const double &val);
 
 	//构造函数
 	//方法1：已知矩阵维度，m*n，构造空的稀疏矩阵

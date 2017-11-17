@@ -147,8 +147,9 @@ public:
 	
 	}
 
-	NRPowerFlow(int nn, string net, string power, string transformer) :N(nn), G(nn, nn), B(nn, nn), Jac(2 * (nn - 1), 2 * (nn - 1)), detPQ(2 * (nn - 1), 0), ef(2 * nn , 0), PQs(2 * (nn - 1), 0)
+	NRPowerFlow(int nn, string net, string power, string transformer, bool t2) :N(nn), G(nn, nn), B(nn, nn), Jac(2 * (nn - 1), 2 * (nn - 1)), detPQ(2 * (nn - 1), 0), ef(2 * nn , 0), PQs(2 * (nn - 1), 0)
 	{
+		Jac.T2 = t2;
 		genN = 0;
 		int from, to;
 		double rx2, g, b, b0;
