@@ -33,10 +33,11 @@ class sparse
 	vector<sp_element> element;//非零元集合
 	vector<HEAD> RHEAD, CHEAD;//行列入口
 	vector<int> order;
-	int current_position;//当前指向非零元的位置
+	
 
 
 	//节点优化内核函数，遍历编号发生变化的非零元，移动到其新位置。
+	void swap_inner_update(int &p1, double &temp, int &ni, int &nj, int &posR, int &posC);
 	void swap_inner(const int &p, const int &q);
 
 	//编号交换函数
@@ -48,16 +49,28 @@ class sparse
 	bool find(const int& i, const int &j, int &p, int& q);
 
 public: 
+	int current_position;//当前指向非零元的位置
+	bool position(const int &i, const int &j, int &posR)
+	{
+		int posC;
+		if (find(i, j, posR, posC))
+		{
+			return true;
+		}
+		else
+			return false;
+	}
+
 	//读取矩阵元A（i，j）
 	double operator() (const int &i, const int &j);
 
 	bool chooserow(const int &row);//选中行首元
-	bool right(int &i, int &j);//搜索右侧下一个非零元
+	bool right(int &i, int &j, int &r);//搜索右侧下一个非零元
 
 	//展示函数
 	//输出系数矩阵
 	void show();
-
+	void clear();
 	//三角分解
 	//使用Tinney-2方法进行节点优化编号
 	//半动态优先消去出线数最少的节点
@@ -71,7 +84,7 @@ public:
 	//更新函数
 	//输入：注入元的行列号i和j，注入元的值val
 	//将注入元添加到稀疏矩阵中，更新矩阵
-	void update(const int &i, const int &j, const double &val);
+	bool update(const int &i, const int &j, const double &val);
 
 	//构造函数
 	//方法1：已知矩阵维度，m*n，构造空的稀疏矩阵

@@ -4,6 +4,104 @@ using namespace std;
 #include <iomanip>
 #include "sparse.h"
 
+//节点优化内核函数，函数功能为将发生变化非零元移动到其新位置。
+void sparse::swap_inner_update(int &p1, double &temp, int &ni, int &nj, int &posR, int &posC)
+{
+	if (find(ni, nj, posR, posC))//找到对换元
+	{
+
+		if (ni < nj)
+		{
+			if (p1 != posR)
+			{
+				temp = element[p1].U;
+				element[p1].U = element[posR].U;
+				element[posR].U = temp;
+				temp = element[p1].L;
+				element[p1].L = element[posR].L;
+				element[posR].L = temp;
+			}
+		}
+		else//上下三角值交换
+		{
+			if (p1 != posR)
+			{
+				temp = element[p1].U;
+				element[p1].U = element[posR].L;
+				element[posR].L = temp;
+				temp = element[p1].L;
+				element[p1].L = element[posR].U;
+				element[posR].U = temp;
+			}
+			else
+			{
+				temp = element[p1].U;
+				element[p1].U = element[posR].L;
+				element[p1].L = temp;
+			}
+		}
+
+	}
+	else//将非零元移动到空位置
+	{
+
+		//原位置周围关系修正，删除与其相连的链表
+		int p2;
+		if (p1 != posR)//删除横向链接
+		{
+			for (p2 = RHEAD[element[p1].i].first; element[element[p2].right].j < element[p1].j; p2 = element[p2].right);
+			if (p1 == p2)
+				RHEAD[element[p2].i].first = element[p2].right;
+			else
+				element[p2].right = element[p1].right;
+		}
+		if (p1 != posC)//删除纵向链接
+		{
+			for (p2 = CHEAD[element[p1].j].first; element[element[p2].down].i < element[p1].i; p2 = element[p2].down);
+			if (p1 == p2)
+				CHEAD[element[p2].j].first = element[p2].down;
+			else
+				element[p2].down = element[p1].down;
+		}
+		//
+		//上下三角值交换
+		if (ni < nj)
+		{
+			element[p1].i = ni;
+			element[p1].j = nj;
+		}
+		else
+		{
+			element[p1].i = nj;
+			element[p1].j = ni;
+			temp = element[p1].U;
+			element[p1].U = element[p1].L;
+			element[p1].L = temp;
+		}
+
+
+		if (p1 != posR)//插入横向新位置
+		{
+			element[p1].right = element[posR].right;
+			element[posR].right = p1;
+		}
+
+		if (p1 != posC)//插入纵向新位置
+		{
+			if (element[CHEAD[element[p1].j].first].i > element[p1].i)
+			{
+				element[p1].down = CHEAD[element[p1].j].first;
+				CHEAD[element[p1].j].first = p1;
+
+			}
+			else
+			{
+				element[p1].down = element[posC].down;
+				element[posC].down = p1;
+			}
+		}
+	}
+}
 //节点优化内核函数，遍历编号发生变化的非零元，移动到其新位置。
 void sparse::swap_inner(const int &p, const int &q)
 {
@@ -14,6 +112,7 @@ void sparse::swap_inner(const int &p, const int &q)
 	//纵向遍历，j<i
 	for (p1 = CHEAD[p].first; element[p1].down >= 0; p1 = next)
 	{
+	
 		next = element[p1].down;
 		//若已交换，跳过
 		if (RHEAD[element[p1].i].flag)
@@ -25,88 +124,11 @@ void sparse::swap_inner(const int &p, const int &q)
 		else
 			ni = element[p1].i;
 		nj = q;
-		if (find(ni, nj, posR, posC))//找到对换元
-		{
-			if (ni < nj)
-			{
-				temp = element[p1].U;
-				element[p1].U = element[posR].U;
-				element[posR].U = temp;
-				temp = element[p1].L;
-				element[p1].L = element[posR].L;
-				element[posR].L = temp;
-			}
-			else
-			{
-				temp = element[p1].U;
-				element[p1].U = element[posR].L;
-				element[posR].L = temp;
-				temp = element[p1].L;
-				element[p1].L = element[posR].U;
-				element[posR].U = temp;
-			}
+		
 
-		}
-		else//将非零元移动到空位置
-		{
-			//原位置周围关系修正，删除与其相连的链表
-			int p2;
-			if (p1 != posR)
-			{
-				for (p2 = RHEAD[element[p1].i].first; element[element[p2].right].j < element[p1].j; p2 = element[p2].right);
-				if (p1 == p2)
-					RHEAD[element[p2].i].first = element[p2].right;
-				else
-					element[p2].right = element[p1].right;
-			}
-			if (p1 != posC)
-			{
-				for (p2 = CHEAD[element[p1].j].first; element[element[p2].down].i < element[p1].i; p2 = element[p2].down);
-				if (p1 == p2)
-					CHEAD[element[p2].j].first = element[p2].down;
-				else
-					element[p2].down = element[p1].down;
-			}
-			//
-			//上下三角转化
-			if (ni < nj)
-			{
-				element[p1].i = ni;
-				element[p1].j = nj;
-			}
-			else
-			{
-				element[p1].i = nj;
-				element[p1].j = ni;
-				temp = element[p1].U;
-				element[p1].U = element[p1].L;
-				element[p1].L = temp;
-			}
+		swap_inner_update(p1, temp, ni, nj, posR, posC);
 
-			//寻找插入位置
 
-			find(ni, nj, posR, posC);
-			if (p1 != posR)
-			{
-				element[p1].right = element[posR].right;
-				element[posR].right = p1;
-			}
-			
-			if (p1 != posC)
-			{
-				if (element[CHEAD[element[p1].j].first].i > element[p1].i)
-				{
-					element[p1].down = CHEAD[element[p1].j].first;
-					CHEAD[element[p1].j].first = p1;
-
-				}
-				else
-				{
-					element[p1].down = element[posC].down;
-					element[posC].down = p1;
-				}
-			}
-		}
 		//标志元素被移动，防止重复
 		if (ni <= nj)
 			RHEAD[ni].flag = true;
@@ -125,7 +147,7 @@ void sparse::swap_inner(const int &p, const int &q)
 	//横向遍历，j>i
 	for (p1 = element[p1].right; p1 >= 0; p1 = next)
 	{
-
+	
 		next = element[p1].right;
 		if (CHEAD[element[p1].j].flag)
 			continue;
@@ -135,86 +157,8 @@ void sparse::swap_inner(const int &p, const int &q)
 		else
 			nj = element[p1].j;
 
-		if (find(ni, nj, posR, posC))
-		{
-			if (ni < nj)
-			{
-				temp = element[p1].U;
-				element[p1].U = element[posR].U;
-				element[posR].U = temp;
-				temp = element[p1].L;
-				element[p1].L = element[posR].L;
-				element[posR].L = temp;
-			}
-			else
-			{
-				temp = element[p1].U;
-				element[p1].U = element[posR].L;
-				element[posR].L = temp;
-				temp = element[p1].L;
-				element[p1].L = element[posR].U;
-				element[posR].U = temp;
-			}
-		}
-		else
-		{
-			//原位置周围关系修正
-			int p2;
-			if (p1 != posR)
-			{
-				for (p2 = RHEAD[element[p1].i].first; element[element[p2].right].j < element[p1].j; p2 = element[p2].right);
-				if (p1 == p2)
-					RHEAD[element[p2].i].first = element[p2].right;
-				else
-					element[p2].right = element[p1].right;
-			}
-			if (p1 != posC)//如果p1==posC,意味着移动过程中纵向没有相对位置的变化，不需要下列步骤
-			{
-				//以下步骤解除p1的上下关系
-				for (p2 = CHEAD[element[p1].j].first; element[element[p2].down].i < element[p1].i; p2 = element[p2].down);
-				if (p1 == p2)
-					CHEAD[element[p2].j].first = element[p2].down;
-				else
-					element[p2].down = element[p1].down;
-			}
-			//
-			//将元素移动到其新位置上去
-			if (ni < nj)
-			{
-				element[p1].i = ni;
-				element[p1].j = nj;
-			}
-			else
-			{
-				element[p1].i = nj;
-				element[p1].j = ni;
-				temp = element[p1].U;
-				element[p1].U = element[p1].L;
-				element[p1].L = temp;
-			}
+		swap_inner_update(p1, temp, ni, nj, posR, posC);
 
-
-			//下列步骤建立新的位置关系
-			if (p1 != posR)
-			{
-				element[p1].right = element[posR].right;
-				element[posR].right = p1;
-			}
-			if (p1 != posC) 
-			{
-				if (element[CHEAD[element[p1].j].first].i > element[p1].i)
-				{
-					element[p1].down = CHEAD[element[p1].j].first;
-					CHEAD[element[p1].j].first = p1;
-
-				}
-				else
-				{
-					element[p1].down = element[posC].down;
-					element[posC].down = p1;
-				}
-			}
-		}
 		if (ni <= nj)
 			CHEAD[nj].flag = true;
 		else
@@ -312,6 +256,24 @@ void sparse::show()
 	cout << endl;
 }
 
+void sparse::clear()
+{
+	int posR, posC;
+	for (int i = 0; i < m; i++)
+	{
+		for (int j = 0; j < n; j++)
+		{
+			if (find(i, j, posR, posC))
+			{
+				if (i <= j)
+					element[posR].U = 0;
+				else
+					element[posR].L = 0;
+			}
+		}
+	}
+}
+
 
 //三角分解
 void sparse::T2decomposition()
@@ -324,6 +286,8 @@ void sparse::T2decomposition()
 	int q;//出线数最小的节点编号
 	for (int p = 0; p < m - 1; p++)
 	{
+		
+		
 		min = m;
 		//选取出线最少的节点
 		for (int i = p; i < m; i++)
@@ -334,17 +298,18 @@ void sparse::T2decomposition()
 				q = i;
 			}
 		}
-
+		
 		//
-		if (p == 15)
-			show();
 		if (p != q)
 			swap(p, q);//通过编号交换，使得出线数最少的节点为待消去节点
-
+			
+			
+		
 		for (int k = element[RHEAD[p].first].right; k >= 0; k = element[k].right)
 		{
 			//规格化操作
 			//由于采用对称式存储，省去下三角储存空间，此时行首元RHEAD指向该行的对角元
+
 			element[k].U /= element[RHEAD[p].first].U;
 			
 			for (int l = element[RHEAD[p].first].right; l >= 0; l = element[l].right)
@@ -354,7 +319,10 @@ void sparse::T2decomposition()
 			}
 		}
 		
+		
+		
 	}
+
 	for (int p = 0; p < m - 1; p++)
 	{
 		for (int k = element[RHEAD[p].first].right; k >= 0; k = element[k].right)
@@ -367,7 +335,8 @@ void sparse::T2decomposition()
 //更新函数
 //输入：注入元的行列号i和j，注入元的值val
 //将注入元添加到稀疏矩阵中，更新矩阵
-void sparse::update(const int &i, const int &j, const double &val)
+//true表示有注入元
+bool sparse::update(const int &i, const int &j, const double &val)
 {
 	int ei;
 	sp_element add;
@@ -403,7 +372,8 @@ void sparse::update(const int &i, const int &j, const double &val)
 				element[ei].U += val;
 			else
 				element[ei].L += val;
-			return;
+			current_position = ei;
+			return false;
 		}
 		add.right = element[ei].right;
 		element.push_back(add);
@@ -427,6 +397,7 @@ void sparse::update(const int &i, const int &j, const double &val)
 		RHEAD[j].count++;
 		CHEAD[j].count++;
 	}
+	return true;
 
 }
 
@@ -487,26 +458,39 @@ double sparse::operator() (const int &i, const int &j)
 		
 }
 
+//选中行首元
 bool sparse::chooserow(const int &row)
 {
 	if (row < m)
 	{
-		current_position = RHEAD[row].first;
+		current_position = CHEAD[row].first;
 		return true;
 	}
 	else
 		return false;
 }
 
-bool sparse::right(int &i, int &j)
+bool sparse::right(int &i, int &j, int &r)
 {
-	current_position = element[current_position].right;
+	
 	if (current_position < 0)
 		return false;
 	else
 	{
-		i = element[current_position].i;
-		j = element[current_position].j;
+		if (element[current_position].i != r)
+		{
+			i = r;
+			j = element[current_position].i;
+		}
+		else
+		{
+			i = r;
+			j = element[current_position].j;
+		}
+		if (element[current_position].i != r)
+			current_position = element[current_position].down;
+		else
+			current_position = element[current_position].right;
 		return true;
 	}
 }
